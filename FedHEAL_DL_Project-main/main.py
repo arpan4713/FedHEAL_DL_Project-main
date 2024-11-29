@@ -544,6 +544,7 @@ def parse_args():
     parser.add_argument('--threshold', type=float, default=0.3, help='Threshold for some operation')
     parser.add_argument('--beta', type=float, default=0.4, help='Beta parameter')
     parser.add_argument('--structure', type=str, required=True, help='Structure of the model')
+    parser.add_argument('--csv_log', action='store_true', help='Enable CSV logging for metrics')
     parser.add_argument('--seed', type=int, default=None, help='Random seed for reproducibility')
 
     # Parse the arguments
