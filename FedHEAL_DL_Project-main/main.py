@@ -460,7 +460,7 @@ def main(args=None):
 
     # Final Pareto Front solutions
     log_pareto_front(pareto_front)
-    plot_pareto_front(pareto_front)
+    plot_pareto_front(pareto_front)jkheh
 
 if __name__ == '__main__':
     main()
