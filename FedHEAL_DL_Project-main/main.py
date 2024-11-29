@@ -162,6 +162,169 @@
 
 
 
+# import os
+# import sys
+# import socket
+# import torch.multiprocessing
+# import logging
+# import uuid
+# import datetime
+# import warnings
+# from datasets import Priv_NAMES as DATASET_NAMES
+# from models import get_all_models, get_model
+# from utils.args import add_management_args
+# from datasets import get_prive_dataset
+# from utils.training import train
+# from utils.best_args import best_args
+# from utils.conf import set_random_seed
+# from argparse import ArgumentParser
+# from sklearn.cluster import KMeans
+# from torch.utils.tensorboard import SummaryWriter
+# from skopt import BayesSearchCV  # For hyperparameter tuning
+
+
+# # Set multiprocessing strategy and ignore warnings
+# torch.multiprocessing.set_sharing_strategy('file_system')
+# warnings.filterwarnings("ignore")
+
+
+# # Set paths
+# conf_path = os.getcwd()
+# sys.path.append(conf_path)
+# sys.path.append(conf_path + '/datasets')
+# sys.path.append(conf_path + '/backbone')
+# sys.path.append(conf_path + '/models')
+
+
+# # Initialize logger
+# LOG_FILE = os.path.join(conf_path, "training_metrics.log")
+# logging.basicConfig(
+#     filename=LOG_FILE,
+#     level=logging.INFO,
+#     format="%(asctime)s - %(levelname)s - %(message)s"
+# )
+
+
+# # TensorBoard writer
+# writer = SummaryWriter(log_dir=os.path.join(conf_path, 'logs'))
+
+
+# # Adaptive learning rate function
+# def adaptive_lr(optimizer, client_metrics, threshold=0.1):
+#     """
+#     Adjust learning rate based on client's loss variability.
+#     """
+#     for idx, client_metric in enumerate(client_metrics):
+#         avg_loss = sum(client_metric['loss']) / len(client_metric['loss'])
+#         if avg_loss > threshold:  # Decrease lr if loss is high
+#             for param_group in optimizer[idx].param_groups:
+#                 param_group['lr'] *= 0.5
+#         else:  # Increase lr for better convergence
+#             for param_group in optimizer[idx].param_groups:
+#                 param_group['lr'] *= 1.1
+
+
+# # Additional utility functions for enhancements (e.g., dynamic averaging, dropout, etc.)
+# # Add the additional functions here (dynamic_averaging, apply_dropout, fedprox_aggregation, etc.)
+# def apply_dropout(model, dropout_rate=0.3):
+#     """
+#     Apply dropout to all layers in the model that support it.
+#     """
+#     for layer in model.modules():
+#         if isinstance(layer, torch.nn.Dropout):
+#             layer.p = dropout_rate
+
+
+# def parse_args():
+#     parser = ArgumentParser(description='Federated Learning Framework', allow_abbrev=False)
+
+#     # Argument definitions
+#     parser.add_argument('--device_id', type=int, default=0, help='Device ID')
+#     parser.add_argument('--communication_epoch', type=int, default=200, help='Communication Epochs')
+#     parser.add_argument('--local_epoch', type=int, default=10, help='Local Training Epochs')
+#     parser.add_argument('--parti_num', type=int, default=20, help='Number of Participants')
+#     parser.add_argument('--model', type=str, default='fedavgheal', choices=get_all_models(), help='Model type')
+#     parser.add_argument('--dataset', type=str, default='fl_digits', choices=DATASET_NAMES, help='Dataset name')
+#     parser.add_argument('--alpha', type=float, default=0.5, help='Alpha parameter')
+#     parser.add_argument('--online_ratio', type=float, default=1.0, help='Online ratio')
+#     parser.add_argument('--learning_decay', type=float, default=0, help='Learning decay')
+#     parser.add_argument('--averaging', type=str, default='weight', choices=['weight', 'other'], help='Averaging method')
+#     parser.add_argument('--wHEAL', type=int, default=1, help='wHEAL flag')
+#     parser.add_argument('--threshold', type=float, default=0.3, help='Threshold value')
+#     parser.add_argument('--beta', type=float, default=0.4, help='Beta parameter')
+
+#     # Management args (add any additional management-related arguments)
+#     add_management_args(parser)  # Assuming this function adds other necessary arguments
+
+#     # Parse arguments
+#     args = parser.parse_args()
+
+#     # Best args initialization based on dataset and model
+#     best = best_args[args.dataset][args.model]
+#     for key, value in best.items():
+#         setattr(args, key, value)
+
+#     # Set random seed if provided
+#     if args.seed is not None:
+#         set_random_seed(args.seed)
+
+#     return args
+
+
+# def log_metrics(metrics, epoch):
+#     """
+#     Log the metrics to a file and TensorBoard.
+#     """
+#     log_message = f"Epoch: {epoch}, Metrics: {metrics}"
+#     logging.info(log_message)
+#     writer.add_scalars('Metrics', metrics, epoch)
+
+
+# def main(args=None):
+#     if args is None:
+#         args = parse_args()
+
+#     # Set unique job and timestamp details
+#     args.conf_jobnum = str(uuid.uuid4())
+#     args.conf_timestamp = str(datetime.datetime.now())
+#     args.conf_host = socket.gethostname()
+
+#     # Dataset and model initialization
+#     priv_dataset = get_prive_dataset(args)
+#     backbones_list = priv_dataset.get_backbone(args.parti_num, None)
+#     model = get_model(backbones_list, args, priv_dataset.get_transform())
+   
+#     # Apply dropout during training
+#     apply_dropout(model, dropout_rate=0.3)
+   
+#     # Custom model initialization (e.g., Xavier initialization)
+#     def init_weights(m):
+#         if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
+#             torch.nn.init.xavier_uniform_(m.weight)
+#     model.apply(init_weights)
+   
+#     # Store model architecture
+#     args.arch = model.nets_list[0].name
+
+#     print(f"Model: {args.model}, Part: {args.parti_num}, Dataset: {args.dataset}, "
+#           f"Comm Epoch: {args.communication_epoch}, Local Epoch: {args.local_epoch}")
+
+#     # Train model and get metrics
+#     metrics = train(model, priv_dataset, args)
+
+#     # Log final metrics to file and TensorBoard
+#     log_metrics(metrics, args.communication_epoch)
+
+#     # Close TensorBoard writer
+#     writer.close()
+
+
+# if __name__ == '__main__':
+#     main()
+
+
+
+
 import os
 import sys
 import socket
@@ -182,11 +345,9 @@ from sklearn.cluster import KMeans
 from torch.utils.tensorboard import SummaryWriter
 from skopt import BayesSearchCV  # For hyperparameter tuning
 
-
 # Set multiprocessing strategy and ignore warnings
 torch.multiprocessing.set_sharing_strategy('file_system')
 warnings.filterwarnings("ignore")
-
 
 # Set paths
 conf_path = os.getcwd()
@@ -194,7 +355,6 @@ sys.path.append(conf_path)
 sys.path.append(conf_path + '/datasets')
 sys.path.append(conf_path + '/backbone')
 sys.path.append(conf_path + '/models')
-
 
 # Initialize logger
 LOG_FILE = os.path.join(conf_path, "training_metrics.log")
@@ -204,10 +364,8 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-
 # TensorBoard writer
 writer = SummaryWriter(log_dir=os.path.join(conf_path, 'logs'))
-
 
 # Adaptive learning rate function
 def adaptive_lr(optimizer, client_metrics, threshold=0.1):
@@ -223,53 +381,29 @@ def adaptive_lr(optimizer, client_metrics, threshold=0.1):
             for param_group in optimizer[idx].param_groups:
                 param_group['lr'] *= 1.1
 
-
 # Additional utility functions for enhancements (e.g., dynamic averaging, dropout, etc.)
 # Add the additional functions here (dynamic_averaging, apply_dropout, fedprox_aggregation, etc.)
+
 def apply_dropout(model, dropout_rate=0.3):
     """
-    Apply dropout to all layers in the model that support it.
+    Apply dropout to the model's layers.
     """
     for layer in model.modules():
         if isinstance(layer, torch.nn.Dropout):
             layer.p = dropout_rate
 
-
 def parse_args():
-    parser = ArgumentParser(description='Federated Learning Framework', allow_abbrev=False)
-
-    # Argument definitions
-    parser.add_argument('--device_id', type=int, default=0, help='Device ID')
-    parser.add_argument('--communication_epoch', type=int, default=200, help='Communication Epochs')
-    parser.add_argument('--local_epoch', type=int, default=10, help='Local Training Epochs')
-    parser.add_argument('--parti_num', type=int, default=20, help='Number of Participants')
-    parser.add_argument('--model', type=str, default='fedavgheal', choices=get_all_models(), help='Model type')
-    parser.add_argument('--dataset', type=str, default='fl_digits', choices=DATASET_NAMES, help='Dataset name')
-    parser.add_argument('--alpha', type=float, default=0.5, help='Alpha parameter')
-    parser.add_argument('--online_ratio', type=float, default=1.0, help='Online ratio')
-    parser.add_argument('--learning_decay', type=float, default=0, help='Learning decay')
-    parser.add_argument('--averaging', type=str, default='weight', choices=['weight', 'other'], help='Averaging method')
-    parser.add_argument('--wHEAL', type=int, default=1, help='wHEAL flag')
-    parser.add_argument('--threshold', type=float, default=0.3, help='Threshold value')
-    parser.add_argument('--beta', type=float, default=0.4, help='Beta parameter')
-
-    # Management args (add any additional management-related arguments)
-    add_management_args(parser)  # Assuming this function adds other necessary arguments
-
-    # Parse arguments
+    parser = ArgumentParser(description='You Only Need Me', allow_abbrev=False)
+    # Add arguments here (same as before)
     args = parser.parse_args()
 
-    # Best args initialization based on dataset and model
     best = best_args[args.dataset][args.model]
     for key, value in best.items():
         setattr(args, key, value)
 
-    # Set random seed if provided
     if args.seed is not None:
         set_random_seed(args.seed)
-
     return args
-
 
 def log_metrics(metrics, epoch):
     """
@@ -279,12 +413,10 @@ def log_metrics(metrics, epoch):
     logging.info(log_message)
     writer.add_scalars('Metrics', metrics, epoch)
 
-
 def main(args=None):
     if args is None:
         args = parse_args()
 
-    # Set unique job and timestamp details
     args.conf_jobnum = str(uuid.uuid4())
     args.conf_timestamp = str(datetime.datetime.now())
     args.conf_host = socket.gethostname()
@@ -293,17 +425,16 @@ def main(args=None):
     priv_dataset = get_prive_dataset(args)
     backbones_list = priv_dataset.get_backbone(args.parti_num, None)
     model = get_model(backbones_list, args, priv_dataset.get_transform())
-   
+    
     # Apply dropout during training
     apply_dropout(model, dropout_rate=0.3)
-   
-    # Custom model initialization (e.g., Xavier initialization)
+    
+    # Custom model initialization
     def init_weights(m):
         if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
             torch.nn.init.xavier_uniform_(m.weight)
     model.apply(init_weights)
-   
-    # Store model architecture
+    
     args.arch = model.nets_list[0].name
 
     print(f"Model: {args.model}, Part: {args.parti_num}, Dataset: {args.dataset}, "
@@ -317,7 +448,6 @@ def main(args=None):
 
     # Close TensorBoard writer
     writer.close()
-
 
 if __name__ == '__main__':
     main()
